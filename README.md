@@ -1,5 +1,3 @@
-Este repositorio contiene scripts diseñados para automatizar la subida de archivos desde un directorio local a un bucket de Google Cloud Storage y para eliminar archivos antiguos del bucket, manteniendo un registro detallado de ambas operaciones.
-
 ## Descripción de los Scripts
 
 Los scripts automatizan la gestión de archivos en Google Cloud Storage, incluyendo la subida de backups y la eliminación de archivos antiguos.
