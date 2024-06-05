@@ -167,8 +167,7 @@ Este script elimina los archivos en un bucket de Google Cloud Storage que tengan
    echo Verificando y eliminando archivos antiguos...
    echo --- Archivos eliminados --- >> "%LOG_FILE%"
    for /f "tokens=1,2,*" %%A in ('findstr /R "^[0-9][0-9]*" "%TEMP%\bucket_files.txt"') do (
-       set
- "FILE_DATE=%%A"
+       set "FILE_DATE=%%A"
        set "FILE_PATH=%%C"
        setlocal enabledelayedexpansion
        set "FILE_DATE=!FILE_DATE:~0,8!"
