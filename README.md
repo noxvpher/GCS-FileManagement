@@ -210,9 +210,7 @@ endlocal
 
 Para automatizar la ejecución de este script utilizando las Tareas Programadas de Windows, sigue estos pasos:
 
-1. **Abrir el Programador de
-
- Tareas**:
+1. **Abrir el Programador de Tareas**:
    - Busca "Programador de tareas" en el menú de inicio y ábrelo.
 
 2. **Crear una Tarea Básica**:
