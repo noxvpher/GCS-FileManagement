@@ -1,12 +1,20 @@
+Aquí tienes la descripción completa del repositorio junto con el código para subir y eliminar archivos en Google Cloud Storage, todo en un README:
+
+---
+
 # GCS-FileUploader
 
-Este repositorio contiene un script diseñado para automatizar la subida de archivos desde un directorio local a un bucket de Google Cloud Storage, manteniendo un registro detallado de la operación.
+Este repositorio contiene scripts diseñados para automatizar la subida de archivos desde un directorio local a un bucket de Google Cloud Storage y para eliminar archivos antiguos del bucket, manteniendo un registro detallado de ambas operaciones.
 
-## Descripción del Script
+## Descripción de los Scripts
 
-El script facilita la gestión de backups automáticos y la verificación de la correcta subida de los archivos. A continuación, se detalla el funcionamiento de cada parte del código:
+Los scripts facilitan la gestión de backups automáticos y la eliminación de archivos antiguos en Google Cloud Storage.
 
-### Código del Script
+### `upload_to_gcs.bat`
+
+Este script automatiza la subida de archivos desde un directorio local a un bucket de Google Cloud Storage, manteniendo un registro detallado de la operación.
+
+#### Código del Script
 
 ```batch
 @echo off
@@ -14,10 +22,10 @@ setlocal
 echo Preparando para subir archivos a Google Cloud Storage...
 
 :: Ruta del directorio que contiene los archivos que deseas subir
-set "RUTA_LOCAL=(RUTA A RESPALDAR "C:/tucarpeta")"
+set "RUTA_LOCAL=C:\TuCarpeta"
 
 :: Nombre del bucket de Google Storage
-set "BUCKET=(Nombre del buket "gs://tubuket")"
+set "BUCKET=gs://nombrebucket"
 
 :: Ruta del archivo de log
 set "LOG_FILE=C:\upload_log.txt"
@@ -103,112 +111,103 @@ pause
 endlocal
 ```
 
-### Explicación del Código
+### `delete_old_files_gcs.bat`
 
-1. **Preparación inicial**
-   ```batch
-   @echo off
-   setlocal
-   echo Preparando para subir archivos a Google Cloud Storage...
-   ```
-   - `@echo off`: Evita que los comandos se muestren en la consola mientras se ejecutan.
-   - `setlocal`: Inicia un entorno local para las variables, evitando que afecten al entorno global.
+Este script elimina los archivos en un bucket de Google Cloud Storage que tengan más de un mes de antigüedad, según la fecha.
 
-2. **Definición de variables**
-   ```batch
-   set "RUTA_LOCAL=(RUTA A RESPALDAR "C:/tucarpeta")"
-   set "BUCKET=(Nombre del buket "gs://tubuket")"
-   set "LOG_FILE=C:\upload_log.txt"
-   ```
-   - Define la ruta local de los archivos, el bucket de Google Storage y la ruta del archivo de log.
+#### Código del Script
 
-3. **Generación de nombre de carpeta con la fecha actual**
-   ```batch
-   for /f "tokens=2 delims==" %%I in ('wmic os get localdatetime /value') do set FECHA=%%I
-   set "CARPETA_FECHA=%FECHA:~0,8%"
-   ```
-   - Obtiene la fecha actual y crea un nombre de carpeta con formato `YYYYMMDD`.
+```batch
+@echo off
+setlocal
+echo Preparando para eliminar archivos antiguos de Google Cloud Storage...
 
-4. **Captura del tiempo de inicio y creación del archivo de log**
-   ```batch
-   set "START_TIME=%DATE% %TIME%"
-   echo. > "%LOG_FILE%"
-   echo --- Inicio de la subida: %START_TIME% --- >> "%LOG_FILE%"
-   ```
-   - Registra la fecha y hora de inicio y crea el archivo de log.
+:: Nombre del bucket de Google Storage
+set "BUCKET=gs://nombrebucket"
 
-5. **Subida de archivos**
-   ```batch
-   echo Subiendo archivos...
-   gsutil -m cp -r "%RUTA_LOCAL%\*" "%BUCKET%/%CARPETA_FECHA%/" >> "%LOG_FILE%" 2>&1
-   ```
-   - Utiliza `gsutil` para subir los archivos al bucket, con opción multithreaded (`-m`).
+:: Ruta del archivo de log
+set "LOG_FILE=C:\delete_log.txt"
 
-6. **Verificación del éxito de la subida**
-   ```batch
-   if %errorlevel% equ 0 (
-       set "STATUS=Éxito"
-       echo Subida completada correctamente. >> "%LOG_FILE%"
-   ) else (
-       set "STATUS=Fallo"
-       echo Error durante la subida. >> "%LOG_FILE%"
-   )
-   ```
-   - Verifica si la subida fue exitosa y registra el estado en el log.
+:: Capturar la fecha actual y calcular la fecha de corte (hace 30 días)
+for /f "tokens=2 delims==" %%I in ('wmic os get localdatetime /value') do set FECHA_ACTUAL=%%I
+set "FECHA_CORTE=%FECHA_ACTUAL:~0,8%"
+powershell -Command "Get-Date -Format 'yyyyMMdd' ((Get-Date).AddDays(-30))" > "%TEMP%\fecha_corte.txt"
+set /p FECHA_CORTE=<"%TEMP%\fecha_corte.txt"
 
-7. **Obtención y comparación de listas de archivos**
-   ```batch
-   echo Obteniendo lista de archivos subidos...
-   gsutil ls -r "%BUCKET%/%CARPETA_FECHA%/**" > "%TEMP%\uploaded_files.txt" 2>> "%LOG_FILE%"
-   echo Obteniendo lista de archivos locales...
-   dir /B /S "%RUTA_LOCAL%" > "%TEMP%\local_files.txt"
-   echo Verificando archivos subidos...
-   set "MISSING_FILES=0"
-   for /f "tokens=*" %%A in (%TEMP%\local_files.txt) do (
-       set "LOCAL_FILE=%%A"
-       set "LOCAL_FILE_RELATIVE=%%A:%RUTA_LOCAL%\=%BUCKET%/%CARPETA_FECHA%/%"
-       call :CheckFile "%LOCAL_FILE_RELATIVE%"
-   )
-   ```
-   - Obtiene y compara las listas de archivos locales y subidos, verificando si hay archivos faltantes.
+:: Capturar la fecha y hora de inicio
+set "START_TIME=%DATE% %TIME%"
 
-8. **Subrutina para comparación de archivos**
-   ```batch
-   :CheckFile
-   set "FILE_TO_CHECK=%~1"
-   findstr /C:"%FILE_TO_CHECK%" "%TEMP%\uploaded_files.txt" >nul
-   if %errorlevel% neq 0 (
-       echo Archivo faltante: %FILE_TO_CHECK% >> "%LOG_FILE%"
-       set /a MISSING_FILES+=1
-   )
-   goto :EOF
-   ```
-   - Compara cada archivo local con la lista de archivos subidos y registra cualquier archivo faltante.
+:: Crear el archivo de log
+echo. > "%LOG_FILE%"
+echo --- Inicio de la eliminación: %START_TIME% --- >> "%LOG_FILE%"
 
-9. **Registro de resultados y finalización**
-   ```batch
-   if %MISSING_FILES% equ 0 (
-       echo Todos los archivos se subieron correctamente. >> "%LOG_FILE%"
-   ) else (
-       echo %MISSING_FILES% archivos faltantes. >> "%LOG_FILE%"
-       set "STATUS=Fallo"
-   )
-   for /f "usebackq tokens=3" %%A in (`dir /a /s "%RUTA_LOCAL%" ^| find "bytes"`) do set "SPACE_USED=%%A"
-   set "END_TIME=%DATE% %TIME%"
-   echo Fecha de subida: %START_TIME% >> "%LOG_FILE%"
-   echo Fecha de finalización: %END_TIME% >> "%LOG_FILE%"
-   echo Estado de la subida: %STATUS% >> "%LOG_FILE%"
-   echo Espacio utilizado: %SPACE_USED% bytes >> "%LOG_FILE%"
-   echo Archivos subidos correctamente.
-   echo Log generado en %LOG_FILE%.
-   pause
-   endlocal
-   ```
-   - Registra el estado final de la subida, el espacio utilizado y genera el log final.
+:: Obtener lista de archivos en el bucket con detalles de fecha
+echo Obteniendo lista de archivos en el bucket...
+gsutil ls -l -r "%BUCKET%/**" > "%TEMP%\bucket_files.txt" 2>> "%LOG_FILE%"
+if %errorlevel% neq 0 (
+    echo Error al obtener la lista de archivos del bucket. >> "%LOG_FILE%"
+    exit /b 1
+)
 
-### Uso del Script
+:: Eliminar archivos más antiguos que la fecha de corte
+echo Verificando y eliminando archivos antiguos...
+echo --- Archivos eliminados --- >> "%LOG_FILE%"
+for /f "tokens=1,2,*" %%A in ('findstr /R "^[0-9][0-9]*" "%TEMP%\bucket_files.txt"') do (
+    set "FILE_DATE=%%A"
+    set "FILE_PATH=%%C"
+    setlocal enabledelayedexpansion
+    set "FILE_DATE=!FILE_DATE:~0,8!"
+    if !FILE_DATE! lss %FECHA_CORTE% (
+        echo Eliminando archivo: !FILE_PATH! >> "%LOG_FILE%"
+        gsutil rm "!FILE_PATH!" >> "%LOG_FILE%" 2>&1
+        if !errorlevel! neq 0 (
+            echo Error al eliminar el archivo: !FILE_PATH! >> "%LOG_FILE%"
+        ) else (
+            echo Archivo eliminado correctamente: !FILE_PATH! >> "%LOG_FILE%"
+        )
+    )
+    endlocal
+)
 
-Para automatizar la ejecución de este script utilizando las Tareas Programadas de Windows, sigue estos pasos:
+:: Obtener lista de archivos restantes en el bucket
+echo Obteniendo lista de archivos restantes en el bucket...
+gsutil ls -r "%BUCKET%/**" > "%TEMP%\remaining_files.txt" 2>> "%LOG_FILE%"
+if %errorlevel% neq 0 (
+    echo Error al obtener la lista de archivos restantes del bucket. >> "%LOG_FILE%"
+    exit /b 1
+)
+
+:: Escribir lista de archivos restantes en el log
+echo --- Archivos restantes --- >> "%LOG_FILE%"
+type "%TEMP%\remaining_files.txt" >> "%LOG_FILE%"
+
+:: Capturar la fecha y hora de finalización
+set "END_TIME=%DATE% %TIME%"
+
+:: Escribir el log
+echo Fecha de inicio: %START_TIME% >> "%LOG_FILE%"
+echo Fecha de finalización: %END_TIME% >> "%LOG_FILE%"
+echo Proceso de eliminación completado. >> "%LOG_FILE%"
+
+echo Archivos antiguos eliminados correctamente.
+echo Log generado en %LOG_FILE%.
+pause
+endlocal
+```
+
+## Uso de los Scripts
+
+### Subida de Archivos
+
+Para subir archivos, ejecuta `upload_to_gcs.bat`. Configura las variables `RUTA_LOCAL` y `BUCKET` según tus necesidades.
+
+### Eliminación de Archivos Antiguos
+
+Para eliminar archivos antiguos, ejecuta `delete_old_files_gcs.bat`. Configura la variable `BUCKET` según tus necesidades.
+
+## Automatización con Tareas Programadas de Windows
+
+### Configuración de una Tarea Programada
 
 1. **Abrir el Programador de Tareas**:
    - Busca "Programador de tareas" en el menú de inicio y ábrelo.
@@ -231,7 +230,7 @@ Para automatizar la ejecución de este script utilizando las Tareas Programadas 
 6. **Finalizar la Configuración**:
    - Revisa la configuración y haz clic en "Finalizar".
 
-Ahora, el script se ejecutará automáticamente según la programación establecida, subiendo los archivos al bucket de Google Cloud Storage y generando un log con los detalles de cada operación.
+Ahora, los scripts se ejecutarán automáticamente según la programación establecida, subiendo los archivos al bucket de Google Cloud Storage y eliminando los archivos antiguos, mientras generan un log con los detalles de cada operación.
 
 ## Contribuciones
 
