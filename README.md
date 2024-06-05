@@ -1,9 +1,3 @@
-Aquí tienes la descripción completa del repositorio junto con el código para subir y eliminar archivos en Google Cloud Storage, todo en un README:
-
----
-
-# GCS-FileUploader
-
 Este repositorio contiene scripts diseñados para automatizar la subida de archivos desde un directorio local a un bucket de Google Cloud Storage y para eliminar archivos antiguos del bucket, manteniendo un registro detallado de ambas operaciones.
 
 ## Descripción de los Scripts
