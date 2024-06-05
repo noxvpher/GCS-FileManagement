@@ -1,7 +1,3 @@
-Claro, aquí tienes la descripción completa del repositorio, incluyendo la sección sobre cómo automatizar el script desde las Tareas Programadas de Windows:
-
----
-
 # GCS-FileUploader
 
 Este repositorio contiene un script diseñado para automatizar la subida de archivos desde un directorio local a un bucket de Google Cloud Storage, manteniendo un registro detallado de la operación.
